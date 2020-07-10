@@ -21,6 +21,20 @@ pub struct List<T> {
     head: Option<Node<T>>,
 }
 
+pub struct ListIter<T> {
+    current: Option<Box<Node<T>>>,
+}
+
+impl<T> Iterator for ListIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.current.take().map(|node| {
+            self.current = node.next;
+            node.value
+        })
+    }
+}
+
 impl<T> List<T> {
     pub fn new() -> Self {
         List { head: None }
@@ -36,6 +50,19 @@ impl<T> List<T> {
     }
 }
 
+impl<T> IntoIterator for List<T> {
+    type Item = T;
+    type IntoIter = ListIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        if let Some(head) = self.head {
+            ListIter {
+                current: Some(Box::new(head)),
+            }
+        } else {
+            ListIter { current: None }
+        }
+    }
+}
 #[cfg(test)]
 mod test {
     use super::*;
