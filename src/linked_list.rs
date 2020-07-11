@@ -21,20 +21,6 @@ pub struct List<T> {
     head: Option<Node<T>>,
 }
 
-pub struct ListIter<T> {
-    current: Option<Box<Node<T>>>,
-}
-
-impl<T> Iterator for ListIter<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.current.take().map(|node| {
-            self.current = node.next;
-            node.value
-        })
-    }
-}
-
 impl<T> List<T> {
     pub fn new() -> Self {
         List { head: None }
@@ -50,6 +36,21 @@ impl<T> List<T> {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct ListIter<T> {
+    current: Option<Box<Node<T>>>,
+}
+
+impl<T> Iterator for ListIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.current.take().map(|node| {
+            self.current = node.next;
+            node.value
+        })
+    }
+}
+
 impl<T> IntoIterator for List<T> {
     type Item = T;
     type IntoIter = ListIter<Self::Item>;
@@ -60,6 +61,31 @@ impl<T> IntoIterator for List<T> {
             }
         } else {
             ListIter { current: None }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct BorrowedListIter<'a, T> {
+    current: Option<&'a Node<T>>,
+}
+
+impl<'a, T> Iterator for BorrowedListIter<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        let temp = self.current.take()?;
+        let temp2 = temp.next.as_ref();
+        self.current = temp2.map(|borrowed_boxed_node| &**borrowed_boxed_node);
+        Some(&temp.value)
+    }
+}
+
+impl<'a, T> IntoIterator for &'a List<T> {
+    type Item = &'a T;
+    type IntoIter = BorrowedListIter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        BorrowedListIter {
+            current: self.head.as_ref(),
         }
     }
 }
@@ -89,5 +115,20 @@ mod test {
                 })
             }
         )
+    }
+
+    #[test]
+    fn test_fold() {
+        let mut list = List::new();
+        list.append(1);
+        list.append(2);
+        list.append(4);
+        list.append(5);
+        assert_eq!(list.into_iter().fold(0, |x, y| x + y), 12);
+    }
+    #[test]
+    fn test_empty_iter() {
+        let list: List<i32> = List::new();
+        assert_eq!(list.into_iter().count(), 0);
     }
 }
