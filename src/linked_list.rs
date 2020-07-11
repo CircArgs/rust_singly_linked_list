@@ -74,8 +74,11 @@ impl<'a, T> Iterator for BorrowedListIter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         let temp = self.current.take()?;
-        let temp2 = temp.next.as_ref();
-        self.current = temp2.map(|borrowed_boxed_node| &**borrowed_boxed_node);
+
+        self.current = temp
+            .next
+            .as_ref()
+            .map(|borrowed_boxed_node| &**borrowed_boxed_node);
         Some(&temp.value)
     }
 }
@@ -130,5 +133,14 @@ mod test {
     fn test_empty_iter() {
         let list: List<i32> = List::new();
         assert_eq!(list.into_iter().count(), 0);
+    }
+    #[test]
+    fn test_fold_borrowed() {
+        let mut list = List::new();
+        list.append(1);
+        list.append(2);
+        list.append(4);
+        list.append(5);
+        assert_eq!((&list).into_iter().fold(0, |x, y| x + y), 12);
     }
 }
